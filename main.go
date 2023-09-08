@@ -23,6 +23,7 @@ const (
 type UserStateMessage struct {
 	Message struct {
 		Favorites []string `json:"favorites"`
+        RegistrationTime float64
 	} `json:"message"`
 }
 
@@ -39,6 +40,10 @@ var done chan struct{}
 var maxRetries int
 var delaySeconds int
 var infiniteRequests bool
+var onTimeRegistration bool
+var registrationTime float64
+
+var authToken string
 var favoriteCourses []string
 var coursesData []map[string]interface{}
 var registrationStatuses []CourseRegistrationStatus
@@ -59,58 +64,62 @@ var registrationHeaders = map[string]string{
 }
 
 func init() {
-    flag.IntVar(&delaySeconds, "d", 5, "Delay in seconds between registration attempts")
-    flag.IntVar(&maxRetries, "r", 5, "Maximum number of registration retries")
-    flag.BoolVar(&infiniteRequests, "i", false, "Request indefinitely until successful")
-    flag.Parse()
+	flag.IntVar(&delaySeconds, "d", 5, "Delay in seconds between registration attempts")
+	flag.IntVar(&maxRetries, "r", 5, "Maximum number of registration retries")
+	flag.BoolVar(&infiniteRequests, "i", false, "Request indefinitely until successful")
+	flag.BoolVar(&onTimeRegistration, "on-time", false, "Enable on-time registration")
+	flag.Parse()
 }
 
 func main() {
-    authToken, err := readAuthTokenFromFile()
-    if err != nil {
-        fmt.Printf("Error reading auth token from file: %v\n", err)
-        return
-    }
-    wsURLWithToken := fmt.Sprintf(wsURL, authToken)
-    conn, _, err := websocket.DefaultDialer.Dial(wsURLWithToken, nil)
-    if err != nil {
-        fmt.Printf("Error establishing WebSocket connection: %v\n", err)
-        return
-    }
-    defer conn.Close()
+	err := readAuthTokenFromFile()
+	if err != nil {
+		fmt.Printf("Error reading auth token from file: %v\n", err)
+		return
+	}
+	wsURLWithToken := fmt.Sprintf(wsURL, authToken)
+	conn, _, err := websocket.DefaultDialer.Dial(wsURLWithToken, nil)
+	if err != nil {
+		fmt.Printf("Error establishing WebSocket connection: %v\n", err)
+		return
+	}
+	defer conn.Close()
 
 	done = make(chan struct{})
 
-    go func() {
-        for {
-            _, message, err := conn.ReadMessage()
-            if err != nil {
-                fmt.Printf("Error reading WebSocket message: %v\n", err)
+	go func() {
+		for {
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				fmt.Printf("Error reading WebSocket message: %v\n", err)
 				close(done)
-                return
-            }
-            handleMessage(message, authToken)
-        }
-    }()
-    <-done
+				return
+			}
+			handleMessage(message)
+		}
+	}()
+	<-done
 }
 
-func readAuthTokenFromFile() (string, error) {
+func readAuthTokenFromFile() error {
     file, err := os.Open("token.txt")
     if err != nil {
-        return "", err
+        return err
     }
     defer file.Close()
 
     tokenData, err := io.ReadAll(file)
     if err != nil {
-        return "", err
+        return err
     }
 
-    return string(tokenData), nil
+    authToken = string(tokenData)
+    registrationHeaders["Authorization"] = authToken
+
+    return nil
 }
 
-func handleMessage(message []byte, authToken string) {
+func handleMessage(message []byte) {
     var msg struct {
         Type string `json:"type"`
     }
@@ -125,21 +134,34 @@ func handleMessage(message []byte, authToken string) {
         handleUserState(message)
     case "listUpdate":
         handleListUpdate(message)
-		registerCourses(authToken)
+		registerCourses()
     default:
         fmt.Printf("Received unknown message type: %s\n", msg.Type)
     }
 }
 
 func handleUserState(message []byte) {
-	var parsedMessage UserStateMessage
-	err := json.Unmarshal(message, &parsedMessage)
-	if err != nil {
-		return
-	}
+    var parsedMessage UserStateMessage
+    err := json.Unmarshal(message, &parsedMessage)
+    if err != nil {
+        return
+    }
 
-	favoriteCourses = parsedMessage.Message.Favorites
-	fmt.Printf("favoriteCourses: %v\n", favoriteCourses)
+    registrationTime = parsedMessage.Message.RegistrationTime
+    favoriteCourses = parsedMessage.Message.Favorites
+    fmt.Printf("favoriteCourses: %v\n", favoriteCourses)
+}
+
+func formatDuration(d time.Duration) string {
+    days := d / (24 * time.Hour)
+    d -= days * 24 * time.Hour
+    hours := d / time.Hour
+    d -= hours * time.Hour
+    minutes := d / time.Minute
+    d -= minutes * time.Minute
+    seconds := d / time.Second
+
+    return fmt.Sprintf("%dd %02dh %02dm %02ds", days, hours, minutes, seconds)
 }
 
 func handleListUpdate(message []byte) {
@@ -150,43 +172,60 @@ func handleListUpdate(message []byte) {
     }
 
     coursesData = parsedMessage.Message
-}
+    fmt.Println("Updated list of courses")
 
-func registerCourses(authToken string) {
-    registrationStatuses = make([]CourseRegistrationStatus, len(favoriteCourses))
+    timeRemaining := time.Until(time.Unix(int64(registrationTime)/1000, 0))
+    fmt.Print("\rRegistration will start in ", formatDuration(timeRemaining))
 
-    var wg sync.WaitGroup
-
-    for i, courseID := range favoriteCourses {
-        units := getCourseUnits(courseID)
-
-        wg.Add(1)
-
-        go func(index int, courseID, units, authToken string) {
-            defer wg.Done()
-            registrationStatus := registerCourse(courseID, units, authToken)
-            registrationStatuses[index] = CourseRegistrationStatus{
-                CourseID: courseID,
-                Status:   registrationStatus,
+    if onTimeRegistration {
+        ticker := time.NewTicker(1 * time.Second)
+        defer ticker.Stop()
+        for range ticker.C {
+            timeRemaining := time.Until(time.Unix(int64(registrationTime)/1000, 0))
+            fmt.Print("\rRegistration will start in ", formatDuration(timeRemaining))
+            if timeRemaining <= 0 {
+                break
             }
-
-            if registrationStatus != "success" && infiniteRequests {
-                for registrationStatus != "success" {
-                    registrationStatus = registerCourse(courseID, units, authToken)
-                }
-            }
-        }(i, courseID, units, authToken)
-    }
-
-    wg.Wait()
-
-    for _, status := range registrationStatuses {
-        if status.Status == "success" {
-            color.Green("✅ %s. Successfully registered.\n", status.CourseID)
-        } else {
-            color.Red("❌ %s. Failed to register. Reason: %s\n", status.CourseID, status.Status)
         }
     }
+    fmt.Println()
+}
+
+func registerCourses() {
+	registrationStatuses = make([]CourseRegistrationStatus, len(favoriteCourses))
+
+	var wg sync.WaitGroup
+
+	for i, courseID := range favoriteCourses {
+		units := getCourseUnits(courseID)
+
+		wg.Add(1)
+
+		go func(index int, courseID, units string) {
+			defer wg.Done()
+			registrationStatus := registerCourse(courseID, units)
+			registrationStatuses[index] = CourseRegistrationStatus{
+				CourseID: courseID,
+				Status:   registrationStatus,
+			}
+
+			if registrationStatus != "success" && infiniteRequests {
+				for registrationStatus != "success" {
+					registrationStatus = registerCourse(courseID, units)
+				}
+			}
+		}(i, courseID, units)
+	}
+
+	wg.Wait()
+
+	for _, status := range registrationStatuses {
+		if status.Status == "success" {
+			color.Green("✅ %s. Successfully registered.\n", status.CourseID)
+		} else {
+			color.Red("❌ %s. Failed to register. Reason: %s\n", status.CourseID, status.Status)
+		}
+	}
 
 	close(done)
 }
@@ -210,18 +249,12 @@ func getCourseUnits(courseID string) string {
     return "0"
 }
 
-func registerCourse(courseID, units string, authToken string) string {
+func registerCourse(courseID, units string) string {
     for retries := 0; retries < maxRetries; retries++ {
         requestData := fmt.Sprintf(`{"action":"add","course":"%s","units":%s}`, courseID, units)
         req, err := http.NewRequest("POST", registrationURL, strings.NewReader(requestData))
         if err != nil {
             return fmt.Sprintf("Error creating request for %s: %v", courseID, err)
-        }
-        for key, value := range registrationHeaders {
-            if key == "Authorization" {
-                value = authToken
-            }
-            req.Header.Set(key, value)
         }
         client := &http.Client{}
         resp, err := client.Do(req)
