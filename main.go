@@ -256,6 +256,9 @@ func registerCourse(courseID, units string) string {
         if err != nil {
             return fmt.Sprintf("Error creating request for %s: %v", courseID, err)
         }
+        for key, value := range registrationHeaders {
+			req.Header.Set(key, value)
+		}
         client := &http.Client{}
         resp, err := client.Do(req)
         if err != nil {
@@ -287,10 +290,10 @@ func getRegistrationFailureReason(responseBody []byte) string {
     var responseJSON map[string]interface{}
     err := json.Unmarshal(responseBody, &responseJSON)
     if err == nil {
-		err, ok := responseJSON["error"].(string)
-		if ok {
-			return err
-		}
+        err, ok := responseJSON["error"].(string)
+        if ok {
+          return err
+        }
         jobs, ok := responseJSON["jobs"].([]interface{})
         if ok && len(jobs) > 0 {
             job, ok := jobs[0].(map[string]interface{})
@@ -301,7 +304,6 @@ func getRegistrationFailureReason(responseBody []byte) string {
                 }
             }
         }
-		fmt.Printf("Error %s", err)
     }
     return string(responseBody)
 }
