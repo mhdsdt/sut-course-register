@@ -113,7 +113,7 @@ func readAuthTokenFromFile() error {
         return err
     }
 
-    authToken = string(tokenData)
+    authToken = strings.TrimSpace(string(tokenData))
     registrationHeaders["Authorization"] = authToken
 
     return nil
