@@ -42,6 +42,7 @@ var delaySeconds int
 var infiniteRequests bool
 var onTimeRegistration bool
 var registrationTime float64
+var configFileName string
 
 var authToken string
 var favoriteCourses []string
@@ -64,19 +65,20 @@ var registrationHeaders = map[string]string{
 }
 
 func init() {
-	flag.IntVar(&delaySeconds, "d", 5, "Delay in seconds between registration attempts")
-	flag.IntVar(&maxRetries, "r", 5, "Maximum number of registration retries")
-	flag.BoolVar(&infiniteRequests, "i", false, "Request indefinitely until successful")
-	flag.BoolVar(&onTimeRegistration, "on-time", false, "Enable on-time registration")
-	flag.Parse()
+    flag.IntVar(&delaySeconds, "d", 5, "Delay in seconds between registration attempts")
+    flag.IntVar(&maxRetries, "r", 5, "Maximum number of registration retries")
+    flag.BoolVar(&infiniteRequests, "i", false, "Request indefinitely until successful")
+    flag.BoolVar(&onTimeRegistration, "on-time", false, "Enable on-time registration")
+    flag.StringVar(&configFileName, "config", "config.json", "Path to the configuration file")
+    flag.Parse()
 }
 
 func main() {
-	err := readAuthTokenFromFile()
-	if err != nil {
-		fmt.Printf("Error reading auth token from file: %v\n", err)
-		return
-	}
+	err := readAuthTokenAndFavoritesFromFile()
+    if err != nil {
+        fmt.Printf("Error reading auth token and favorites from file: %v\n", err)
+        return
+    }
 	wsURLWithToken := fmt.Sprintf(wsURL, authToken)
 	conn, _, err := websocket.DefaultDialer.Dial(wsURLWithToken, nil)
 	if err != nil {
@@ -101,20 +103,29 @@ func main() {
 	<-done
 }
 
-func readAuthTokenFromFile() error {
-    file, err := os.Open("token.txt")
+func readAuthTokenAndFavoritesFromFile() error {
+    configFile, err := os.Open(configFileName)
     if err != nil {
         return err
     }
-    defer file.Close()
+    defer configFile.Close()
 
-    tokenData, err := io.ReadAll(file)
-    if err != nil {
+    var config struct {
+        Token   string   `json:"token"`
+        Favorites []string `json:"fav"`
+    }
+
+    decoder := json.NewDecoder(configFile)
+    if err := decoder.Decode(&config); err != nil {
         return err
     }
 
-    authToken = strings.TrimSpace(string(tokenData))
+    authToken = config.Token
     registrationHeaders["Authorization"] = authToken
+
+    if len(config.Favorites) > 0 {
+        favoriteCourses = config.Favorites
+    }
 
     return nil
 }
@@ -147,8 +158,11 @@ func handleUserState(message []byte) {
         return
     }
 
+    if len(favoriteCourses) == 0 {
+        favoriteCourses = parsedMessage.Message.Favorites
+    }
+
     registrationTime = parsedMessage.Message.RegistrationTime
-    favoriteCourses = parsedMessage.Message.Favorites
     fmt.Printf("favoriteCourses: %v\n", favoriteCourses)
 }
 
