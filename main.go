@@ -43,9 +43,11 @@ var infiniteRequests bool
 var onTimeRegistration bool
 var registrationTime float64
 var configFileName string
+var offset int
 
 var authToken string
 var favoriteCourses []string
+var action string
 var coursesData []map[string]interface{}
 var registrationStatuses []CourseRegistrationStatus
 
@@ -70,6 +72,7 @@ func init() {
     flag.BoolVar(&infiniteRequests, "i", false, "Request indefinitely until successful")
     flag.BoolVar(&onTimeRegistration, "on-time", false, "Enable on-time registration")
     flag.StringVar(&configFileName, "config", "config.json", "Path to the configuration file")
+    flag.IntVar(&offset, "o", 300, "Offset in milliseconds before the first registration request")
     flag.Parse()
 }
 
@@ -111,8 +114,9 @@ func readAuthTokenAndFavoritesFromFile() error {
     defer configFile.Close()
 
     var config struct {
-        Token   string   `json:"token"`
+        Token     string   `json:"token"`
         Favorites []string `json:"fav"`
+        Action   string `json:"action"`
     }
 
     decoder := json.NewDecoder(configFile)
@@ -126,6 +130,12 @@ func readAuthTokenAndFavoritesFromFile() error {
     if len(config.Favorites) > 0 {
         favoriteCourses = config.Favorites
     }
+
+    if config.Action != "" {
+        config.Action = "add"
+    }
+
+    action = config.Action
 
     return nil
 }
@@ -189,7 +199,9 @@ func handleListUpdate(message []byte) {
     fmt.Println("Updated list of courses")
 
     timeRemaining := time.Until(time.Unix(int64(registrationTime)/1000, 0))
-    fmt.Print("\rRegistration will start in ", formatDuration(timeRemaining))
+    if (timeRemaining >= 0) {
+        fmt.Print("\rRegistration will start in ", formatDuration(timeRemaining))
+    }
 
     if onTimeRegistration {
         ticker := time.NewTicker(1 * time.Second)
@@ -206,42 +218,47 @@ func handleListUpdate(message []byte) {
 }
 
 func registerCourses() {
-	registrationStatuses = make([]CourseRegistrationStatus, len(favoriteCourses))
+    if offset > 0 {
+        offsetInMiliSeconds := time.Duration(offset) * time.Millisecond
+        time.Sleep(offsetInMiliSeconds)
+    }
 
-	var wg sync.WaitGroup
+    registrationStatuses = make([]CourseRegistrationStatus, len(favoriteCourses))
 
-	for i, courseID := range favoriteCourses {
-		units := getCourseUnits(courseID)
+    var wg sync.WaitGroup
 
-		wg.Add(1)
+    for i, courseID := range favoriteCourses {
+        units := getCourseUnits(courseID)
 
-		go func(index int, courseID, units string) {
-			defer wg.Done()
-			registrationStatus := registerCourse(courseID, units)
-			registrationStatuses[index] = CourseRegistrationStatus{
-				CourseID: courseID,
-				Status:   registrationStatus,
-			}
+        wg.Add(1)
 
-			if registrationStatus != "success" && infiniteRequests {
-				for registrationStatus != "success" {
-					registrationStatus = registerCourse(courseID, units)
-				}
-			}
-		}(i, courseID, units)
-	}
+        go func(index int, courseID, action, units string) {
+            defer wg.Done()
+            registrationStatus := registerCourse(courseID, action, units)
+            registrationStatuses[index] = CourseRegistrationStatus{
+                CourseID: courseID,
+                Status:   registrationStatus,
+            }
 
-	wg.Wait()
+            if registrationStatus != "success" && infiniteRequests {
+                for registrationStatus != "success" {
+                    registrationStatus = registerCourse(courseID, action, units)
+                }
+            }
+        }(i, courseID, action, units)
+    }
 
-	for _, status := range registrationStatuses {
-		if status.Status == "success" {
-			color.Green("✅ %s. Successfully registered.\n", status.CourseID)
-		} else {
-			color.Red("❌ %s. Failed to register. Reason: %s\n", status.CourseID, status.Status)
-		}
-	}
+    wg.Wait()
 
-	close(done)
+    for _, status := range registrationStatuses {
+        if status.Status == "success" {
+            color.Green("✅ %s. Successfully registered.\n", status.CourseID)
+        } else {
+            color.Red("❌ %s. Failed to register. Reason: %s\n", status.CourseID, status.Status)
+        }
+    }
+
+    close(done)
 }
 
 func getCourseUnits(courseID string) string {
@@ -263,9 +280,9 @@ func getCourseUnits(courseID string) string {
     return "0"
 }
 
-func registerCourse(courseID, units string) string {
+func registerCourse(courseID, action string, units string) string {
     for retries := 0; retries < maxRetries; retries++ {
-        requestData := fmt.Sprintf(`{"action":"add","course":"%s","units":%s}`, courseID, units)
+        requestData := fmt.Sprintf(`{"action":"%s","course":"%s","units":%s}`, action, courseID, units)
         req, err := http.NewRequest("POST", registrationURL, strings.NewReader(requestData))
         if err != nil {
             return fmt.Sprintf("Error creating request for %s: %v", courseID, err)
