@@ -13,8 +13,8 @@ import (
 
 func registerCourses() {
 	if offset > 0 {
-		offsetInMiliSeconds := time.Duration(offset) * time.Millisecond
-		time.Sleep(offsetInMiliSeconds)
+		offsetDuration := time.Duration(offset) * time.Millisecond
+		time.Sleep(offsetDuration)
 	}
 
 	registrationStatuses = make([]CourseRegistrationStatus, len(favoriteCourses))
