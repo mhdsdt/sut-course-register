@@ -4,7 +4,34 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
+
+func establishWebsocket() {
+	wsURLWithToken := fmt.Sprintf(wsURL, authToken)
+	conn, _, err := websocket.DefaultDialer.Dial(wsURLWithToken, nil)
+	if err != nil {
+		fmt.Printf("Error establishing WebSocket connection: %v\n", err)
+		return
+	}
+	defer conn.Close()
+
+	done = make(chan struct{})
+
+	go func() {
+		for {
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				fmt.Printf("Error reading WebSocket message: %v\n", err)
+				close(done)
+				return
+			}
+			handleMessage(message)
+		}
+	}()
+	<-done
+}
 
 func handleMessage(message []byte) {
 	var msg struct {
