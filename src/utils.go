@@ -8,37 +8,37 @@ import (
 )
 
 func formatDuration(d time.Duration) string {
-    days := d / (24 * time.Hour)
-    d -= days * 24 * time.Hour
-    hours := d / time.Hour
-    d -= hours * time.Hour
-    minutes := d / time.Minute
-    d -= minutes * time.Minute
-    seconds := d / time.Second
+	days := d / (24 * time.Hour)
+	d -= days * 24 * time.Hour
+	hours := d / time.Hour
+	d -= hours * time.Hour
+	minutes := d / time.Minute
+	d -= minutes * time.Minute
+	seconds := d / time.Second
 
-    return fmt.Sprintf("%dd %02dh %02dm %02ds", days, hours, minutes, seconds)
+	return fmt.Sprintf("%dd %02dh %02dm %02ds", days, hours, minutes, seconds)
 }
 
 func getCourseUnits(courseID string) string {
-    for _, course := range coursesData {
-        id, ok := course["id"].(string)
-        if !ok {
-            continue
-        }
+	for _, course := range coursesData {
+		id, ok := course["id"].(string)
+		if !ok {
+			continue
+		}
 
-        if id == courseID {
-            units, ok := course["units"].(float64)
-            if ok {
+		if id == courseID {
+			units, ok := course["units"].(float64)
+			if ok {
 				unitsInt := int(units)
-                return strconv.Itoa(unitsInt)
-            }
-        }
-    }
+				return strconv.Itoa(unitsInt)
+			}
+		}
+	}
 
-    return "0"
+	return "0"
 }
 
-func getRegistrationFailureReason(responseBody []byte) string {
+func getRegistrationResult(responseBody []byte) string {
 	var responseJSON map[string]interface{}
 	err := json.Unmarshal(responseBody, &responseJSON)
 	if err == nil {

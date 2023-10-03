@@ -24,12 +24,6 @@ type CourseRegistrationStatus struct {
 	Status   string
 }
 
-type Response struct {
-	Jobs []struct {
-		Result string `json:"result"`
-	} `json:"jobs"`
-}
-
 var done chan struct{}
 var MaxRetries int
 var DelaySeconds int

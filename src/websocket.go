@@ -78,6 +78,10 @@ func handleListUpdate(message []byte) {
 		return
 	}
 
+	if len(parsedMessage.Message) <= 0 {
+		return
+	}
+	
 	coursesData = parsedMessage.Message
 	fmt.Println("Updated list of courses")
 
