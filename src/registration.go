@@ -89,13 +89,13 @@ func registerCourse(courseID, action string, units string) string {
 		if len(jsonResponse.Jobs) > 0 {
 			result := jsonResponse.Jobs[0].Result
 			if result == "OK" || result == "COURSE_DUPLICATE" {
-				fmt.Printf("✅ %s.\n", courseID)
+				fmt.Printf("%s✅ %s.%s\n", GREEN, courseID, RESET)
 				return "success"
 			}
 			reason := getRegistrationFailureReason(body)
-			fmt.Printf("❌ %s. Reason: %s.\n", courseID, reason)
-			time.Sleep(time.Duration(DelaySeconds) * time.Second)
+			fmt.Printf("%s❌ %s. Reason: %s.%s\n", RED, courseID, reason, RESET)
 		}
+		time.Sleep(time.Duration(DelaySeconds) * time.Second)
 	}
 	return "Max retries reached"
 }

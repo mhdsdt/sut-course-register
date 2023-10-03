@@ -50,7 +50,7 @@ func handleMessage(message []byte) {
 		handleListUpdate(message)
 		registerCourses()
 	case "logout":
-		fmt.Println("Logged out /:")
+		fmt.Printf("%sLogged out /:%s\n", RED, RESET)
 	default:
 		fmt.Printf("Received unknown message type: %s\n", msg.Type)
 	}

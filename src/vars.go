@@ -3,6 +3,9 @@ package src
 const (
 	registrationURL = "https://my.edu.sharif.edu/api/reg"
 	wsURL           = "wss://my.edu.sharif.edu/api/ws?token=%s"
+	RED				= "\033[91m"
+	GREEN			= "\033[92m"
+	RESET			= "\033[0m"
 )
 
 type UserStateMessage struct {
