@@ -1,19 +1,18 @@
-package main
+package src
 
 import (
 	"fmt"
 	"io"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/fatih/color"
 )
 
 func registerCourses() {
-	if offset > 0 {
-		offsetDuration := time.Duration(offset) * time.Millisecond
+	if Offset > 0 {
+		offsetDuration := time.Duration(Offset) * time.Millisecond
 		time.Sleep(offsetDuration)
 	}
 
@@ -34,7 +33,7 @@ func registerCourses() {
 				Status:   registrationStatus,
 			}
 
-			if registrationStatus != "success" && infiniteRequests {
+			if registrationStatus != "success" && InfiniteRequests {
 				for registrationStatus != "success" {
 					registrationStatus = registerCourse(courseID, action, units)
 				}
@@ -46,9 +45,9 @@ func registerCourses() {
 
 	for _, status := range registrationStatuses {
 		if status.Status == "success" {
-			color.Green("✅ %s. Successfully registered.\n", status.CourseID)
+			fmt.Printf("✅ %s. Successfully registered.\n", status.CourseID)
 		} else {
-			color.Red("❌ %s. Failed to register. Reason: %s\n", status.CourseID, status.Status)
+			fmt.Printf("❌ %s. Failed to register. Reason: %s\n", status.CourseID, status.Status)
 		}
 	}
 
@@ -56,7 +55,7 @@ func registerCourses() {
 }
 
 func registerCourse(courseID, action string, units string) string {
-	for retries := 0; retries < maxRetries; retries++ {
+	for retries := 0; retries < MaxRetries; retries++ {
 		requestData := fmt.Sprintf(`{"action":"%s","course":"%s","units":%s}`, action, courseID, units)
 		req, err := http.NewRequest("POST", registrationURL, strings.NewReader(requestData))
 		if err != nil {
@@ -80,13 +79,22 @@ func registerCourse(courseID, action string, units string) string {
 		if err != nil {
 			return fmt.Sprintf("Error reading response for %s: %v", courseID, err)
 		}
-		if strings.Contains(string(body), `"result":"OK"`) || strings.Contains(string(body), `"result":"COURSE_DUPLICATE"`) {
-			color.Green("✅ %s.\n", courseID)
-			return "success"
-		} else {
+
+		var jsonResponse Response
+		err = json.NewDecoder(resp.Body).Decode(&jsonResponse)
+		if err != nil {
+			return fmt.Sprintf("Error decoding JSON response for %s: %v", courseID, err)
+		}
+
+		if len(jsonResponse.Jobs) > 0 {
+			result := jsonResponse.Jobs[0].Result
+			if result == "OK" || result == "COURSE_DUPLICATE" {
+				fmt.Printf("✅ %s.\n", courseID)
+				return "success"
+			}
 			reason := getRegistrationFailureReason(body)
-			color.Red("❌ %s. Reason: %s.\n", courseID, reason)
-			time.Sleep(time.Duration(delaySeconds) * time.Second)
+			fmt.Printf("❌ %s. Reason: %s.\n", courseID, reason)
+			time.Sleep(time.Duration(DelaySeconds) * time.Second)
 		}
 	}
 	return "Max retries reached"

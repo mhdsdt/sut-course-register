@@ -1,12 +1,12 @@
-package main
+package src
 
 import (
 	"encoding/json"
 	"os"
 )
 
-func readConfig() error {
-	configFile, err := os.Open(configFileName)
+func ReadConfig() error {
+	configFile, err := os.Open(ConfigFileName)
 	if err != nil {
 		return err
 	}

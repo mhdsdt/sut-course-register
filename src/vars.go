@@ -1,4 +1,4 @@
-package main
+package src
 
 const (
 	registrationURL = "https://my.edu.sharif.edu/api/reg"
@@ -7,8 +7,8 @@ const (
 
 type UserStateMessage struct {
 	Message struct {
-		Favorites []string `json:"favorites"`
-        RegistrationTime float64
+		Favorites        []string `json:"favorites"`
+		RegistrationTime float64
 	} `json:"message"`
 }
 
@@ -17,18 +17,24 @@ type ListUpdateMessage struct {
 }
 
 type CourseRegistrationStatus struct {
-    CourseID string
-    Status   string
+	CourseID string
+	Status   string
+}
+
+type Response struct {
+	Jobs []struct {
+		Result string `json:"result"`
+	} `json:"jobs"`
 }
 
 var done chan struct{}
-var maxRetries int
-var delaySeconds int
-var infiniteRequests bool
-var onTimeRegistration bool
+var MaxRetries int
+var DelaySeconds int
+var InfiniteRequests bool
+var OnTimeRegistration bool
 var registrationTime float64
-var configFileName string
-var offset int
+var ConfigFileName string
+var Offset int
 
 var authToken string
 var favoriteCourses []string

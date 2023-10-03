@@ -1,4 +1,4 @@
-package main
+package src
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func establishWebsocket() {
+func EstablishWebsocket() {
 	wsURLWithToken := fmt.Sprintf(wsURL, authToken)
 	conn, _, err := websocket.DefaultDialer.Dial(wsURLWithToken, nil)
 	if err != nil {
@@ -49,6 +49,8 @@ func handleMessage(message []byte) {
 	case "listUpdate":
 		handleListUpdate(message)
 		registerCourses()
+	case "logout":
+		fmt.Println("Logged out /:")
 	default:
 		fmt.Printf("Received unknown message type: %s\n", msg.Type)
 	}
@@ -84,7 +86,7 @@ func handleListUpdate(message []byte) {
 		fmt.Print("\rRegistration will start in ", formatDuration(timeRemaining))
 	}
 
-	if onTimeRegistration {
+	if OnTimeRegistration {
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
