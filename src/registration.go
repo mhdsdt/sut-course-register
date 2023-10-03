@@ -3,7 +3,6 @@ package src
 import (
 	"fmt"
 	"io"
-	"encoding/json"
 	"net/http"
 	"strings"
 	"sync"
@@ -80,21 +79,12 @@ func registerCourse(courseID, action string, units string) string {
 			return fmt.Sprintf("Error reading response for %s: %v", courseID, err)
 		}
 
-		var jsonResponse Response
-		err = json.NewDecoder(resp.Body).Decode(&jsonResponse)
-		if err != nil {
-			return fmt.Sprintf("Error decoding JSON response for %s: %v", courseID, err)
+		result := getRegistrationResult(body)
+		if result == "OK" || result == "COURSE_DUPLICATE" {
+			fmt.Printf("%s✅ %s. Result: %s.%s\n", GREEN, courseID, result, RESET)
+			return "success"
 		}
-
-		if len(jsonResponse.Jobs) > 0 {
-			result := jsonResponse.Jobs[0].Result
-			if result == "OK" || result == "COURSE_DUPLICATE" {
-				fmt.Printf("%s✅ %s.%s\n", GREEN, courseID, RESET)
-				return "success"
-			}
-			reason := getRegistrationFailureReason(body)
-			fmt.Printf("%s❌ %s. Reason: %s.%s\n", RED, courseID, reason, RESET)
-		}
+		fmt.Printf("%s❌ %s. Reason: %s.%s\n", RED, courseID, result, RESET)
 		time.Sleep(time.Duration(DelaySeconds) * time.Second)
 	}
 	return "Max retries reached"
