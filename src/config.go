@@ -30,7 +30,7 @@ func ReadConfig() error {
 		favoriteCourses = config.Favorites
 	}
 
-	if config.Action != "" {
+	if config.Action == "" {
 		config.Action = "add"
 	}
 
