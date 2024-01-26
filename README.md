@@ -25,7 +25,7 @@ Make sure you have Go (Golang) installed on your machine.
 ### Build for Windows
 
 ```bash
-go build -o course_register.exe
+go build -o cr.exe
 ```
 
 ### Build for Linux
@@ -45,12 +45,17 @@ GOOS=darwin GOARCH=amd64 go build
 After building the executable for your desired OS, you can run it from the command line. Here's the basic usage:
 
 ```bash
-./course_register -d [DELAY_SECONDS] -r [MAX_RETRIES] -i
+./cr.exe -d [DELAY_SECONDS] -r [MAX_RETRIES] -i
 ```
 
 `-d [DELAY_SECONDS]`: Specifies the delay in seconds between registration attempts (default: 5 seconds).
 
 `-r [MAX_RETRIES]`: Sets the maximum number of registration retries (default: 5 retries).
 
-`-i`: Enables infinite registration attempts until successful.
+`-i`: Enables infinite registration attempts until successful (default: false).
 
+`-on-time`: Enable on-time registration. (default: false).
+
+`-config`: Path to the configuration file (default: config.json)
+
+`-o`: Offset in milliseconds before the first registration request (default: 300)
