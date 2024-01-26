@@ -25,27 +25,39 @@ Make sure you have Go (Golang) installed on your machine.
 ### Build for Windows
 
 ```bash
-go build -o cr.exe
+go build -o ./bin/cr
 ```
 
 ### Build for Linux
 
 ```bash
-GOOS=linux GOARCH=amd64 go build
+GOOS=linux GOARCH=amd64 go build -o ./bin/cr
 ```
 
 ### Build for macOS
 
 ```bash
-GOOS=darwin GOARCH=amd64 go build
+GOOS=darwin GOARCH=amd64 go build -o ./bin/cr
 ```
 
 ### How to run
 
+First of all, copy the `example.json` to  `config.json`:
+
+For windows:
+```bash
+copy ./example.json ./config.json
+```
+
+For Linux & macOS:
+```bash
+cp copy ./example.json ./config.json
+```
+
 After building the executable for your desired OS, you can run it from the command line. Here's the basic usage:
 
 ```bash
-./cr.exe -d [DELAY_SECONDS] -r [MAX_RETRIES] -i
+./cr -d [DELAY_SECONDS] -r [MAX_RETRIES] -i -config [PATH] -o [OFFSET]
 ```
 
 `-d [DELAY_SECONDS]`: Specifies the delay in seconds between registration attempts (default: 5 seconds).
@@ -56,6 +68,6 @@ After building the executable for your desired OS, you can run it from the comma
 
 `-on-time`: Enable on-time registration. (default: false).
 
-`-config`: Path to the configuration file (default: config.json)
+`-config [PATH]`: Path to the configuration file (default: config.json)
 
-`-o`: Offset in milliseconds before the first registration request (default: 300)
+`-o [OFFSET]`: Offset in milliseconds before the first registration request (default: 300)
