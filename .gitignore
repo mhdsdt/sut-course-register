@@ -1,5 +1,6 @@
 /bin
 /.vscode
 /*config*.json
+/config
 /course_register.exe
 /course_register
