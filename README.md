@@ -76,14 +76,14 @@ After building the executable for your desired OS, you can run it from the comma
 ./cr -d [DELAY_SECONDS] -r [MAX_RETRIES] -i -config [PATH] -o [OFFSET]
 ```
 
-`-d [DELAY_SECONDS]`: Specifies the delay in seconds between registration attempts (default: 5 seconds).
+`-d [DELAY_SECONDS]`: Specifies the delay in seconds between registration attempts (default: `5`)‍.
 
-`-r [MAX_RETRIES]`: Sets the maximum number of registration retries (default: 5 retries).
+`-r [MAX_RETRIES]`: Sets the maximum number of registration retries (default: `5`).
 
-`-i`: Enables infinite registration attempts until successful (default: false).
+`-i`: Enables infinite registration attempts until successful (default: `false`).
 
-`-on-time`: Enable on-time registration. (default: false).
+`-on-time`: Enable on-time registration. (default: `false`).
 
-`-config [PATH]`: Path to the configuration file (default: config.json)
+`-config [PATH]`: Path to the configuration file (default: `config.json`)
 
-`-o [OFFSET]`: Offset in milliseconds before the first registration request (default: 300)
+`-o [OFFSET]`: Offset in milliseconds before the first registration request (default: `300`)
