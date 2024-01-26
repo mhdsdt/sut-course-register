@@ -40,7 +40,7 @@ GOOS=linux GOARCH=amd64 go build -o ./bin/cr
 GOOS=darwin GOARCH=amd64 go build -o ./bin/cr
 ```
 
-### How to run
+## How to run
 
 First of all, copy the `example.json` to  `config.json`:
 
@@ -53,6 +53,22 @@ For Linux & macOS:
 ```bash
 cp copy ./example.json ./config.json
 ```
+
+You should replace `<YOUR-TOKEN-HERE>` with your authorization otken. You can obtain it from local storage of [my.edu.sharif.edu](https://my.edu.sharif.edu):
+
+F12 -> Application -> Local Storage -> https://my.edu.sharif.edu -> value of token
+
+Then you should determine the value of `fav` and `action` in `config.json`. You should always set a value for these.
+
+```json
+    "fav": [],
+    "action": ""
+```
+
+The default value of `fav` will be your favorite courses on [my.edu.sharif.edu](https://my.edu.sharif.edu).
+
+The default value of `action` will be `add`. Other options are `move` and `remove`.
+
 
 After building the executable for your desired OS, you can run it from the command line. Here's the basic usage:
 
