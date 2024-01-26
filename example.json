@@ -1,0 +1,12 @@
+{
+    "token": "<YOUR-TOKEN-HERE>",
+    "fav": [
+        "40124-1",
+        "40128-2"
+    ],
+    "action": [
+        "add",
+        "move"
+    ]
+
+}
