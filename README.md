@@ -14,6 +14,12 @@ The Course Registration Tool is a command-line utility written in Go for automat
 
 - **Infinite Registration**: Option to keep attempting registration indefinitely until successful.
 
+### Requirements
+```bash
+go mod download
+go mod tidy
+```
+
 ## How to Build
 
 You can build the Course Registration Tool for different operating systems (OS) using the Go cross-compilation feature. Here are the steps to build it for various OSs:
