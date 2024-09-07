@@ -57,7 +57,7 @@ copy ./example.json ./config.json
 
 For Linux & macOS:
 ```bash
-cp copy ./example.json ./config.json
+cp ./example.json ./config.json
 ```
 
 You should replace `<YOUR-TOKEN-HERE>` with your authorization otken. You can obtain it from local storage of [my.edu.sharif.edu](https://my.edu.sharif.edu):
@@ -79,7 +79,7 @@ The default value of `action` will be `add`. Other options are `move` and `remov
 After building the executable for your desired OS, you can run it from the command line. Here's the basic usage:
 
 ```bash
-./cr -d [DELAY_SECONDS] -r [MAX_RETRIES] -i -config [PATH] -o [OFFSET]
+./bin/cr -d [DELAY_SECONDS] -r [MAX_RETRIES] -i -config [PATH] -o [OFFSET] -on-time
 ```
 
 `-d [DELAY_SECONDS]`: Specifies the delay in seconds between registration attempts (default: `5`)‍.
